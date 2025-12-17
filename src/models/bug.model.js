@@ -1,68 +1,30 @@
+// src/models/bug.model.js
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const bugSchema = new Schema(
   {
-    title: {
-      type: String,
-      required: [true, "Bug title is required"],
-      trim: true,
-      maxlength: [100, "Title cannot exceed 100 characters"],
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    status: {
-      type: String,
-      enum: ["Open", "In Progress", "Resolved", "Closed"],
-      default: "Open",
-    },
-    priority: {
-      type: String,
-      enum: ["Low", "Medium", "High", "Critical"],
-      default: "Low",
-    },
-    severity: {
-      type: String,
-      enum: ["Minor", "Major", "Critical"],
-      default: "Minor",
-    },
-    tags: [
-      {
-        type: String,
-        trim: true,
-        maxlength: [30, "Each tag cannot exceed 30 characters"],
-      },
-    ],
+    title: { type: String, required: true, trim: true, maxlength: 100 },
+    description: { type: String, trim: true },
+    status: { type: String, enum: ["Open", "In Progress", "Resolved", "Closed"], default: "Open" },
+    priority: { type: String, enum: ["Low", "Medium", "High", "Critical"], default: "Low" },
+    severity: { type: String, enum: ["Minor", "Major", "Critical"], default: "Minor" },
+    tags: [{ type: String, trim: true, maxlength: 30 }],
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
+    reportedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
 
-    // 🧑‍💻 Assignment
-    assignedTo: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-    reportedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "ReportedBy field is required"],
-    },
-    projectId: {
-      type: Schema.Types.ObjectId,
-      ref: "Project",
-      required: [true, "Project reference is required"],
-    },
-
-    // 📎 File Attachments (images, PDFs, etc.)
+    // Attachments
     attachments: [
       {
-        fileName: { type: String },
-        fileType: { type: String },
-        fileUrl: { type: String }, // Cloud or local storage path
+        fileName: String,
+        fileType: String,
+        fileUrl: String,
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
 
-    // 💬 Discussion / Comments on bug
+    // Comments
     comments: [
       {
         user: { type: Schema.Types.ObjectId, ref: "User" },
@@ -71,25 +33,39 @@ const bugSchema = new Schema(
       },
     ],
 
-    // 👁️ Review by manager/admin
-    reviewedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-    isReviewed: {
-      type: Boolean,
-      default: false,
-    },
+    // Review & workflow
+    reviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    isReviewed: { type: Boolean, default: false },
+
+    // New fields
+    history: [
+      {
+        changedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        field: String,
+        oldValue: Schema.Types.Mixed,
+        newValue: Schema.Types.Mixed,
+        changedAt: { type: Date, default: Date.now },
+      },
+    ],
+    dueDate: Date,
+    resolutionDate: Date,
+    linkedBugs: [{ type: Schema.Types.ObjectId, ref: "Bug" }],
+    environment: String,
+    reproducible: { type: Boolean, default: true },
+    watchers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    estimatedFixTime: Number,
+    severityScore: Number,
+    deletedAt: Date,
   },
   { timestamps: true }
 );
 
-// Performance indexes
+// Indexes
 bugSchema.index({ status: 1, priority: 1 });
 bugSchema.index({ projectId: 1 });
 bugSchema.index({ assignedTo: 1 });
 
-// Title check
+// Title validation
 bugSchema.pre("save", function (next) {
   if (!this.title.trim()) return next(new Error("Bug title cannot be empty"));
   next();

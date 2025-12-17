@@ -9,27 +9,39 @@ import {
   forgotPasswordService,
   resetPasswordService,
 } from "../../services/admin/auth.service.js";
+import { successResponse, errorResponse } from "../../helpers/response.helper.js"
 
 
 // ---------------- Register ----------------
 export const register = async (req, res) => {
   try {
-    const { user, token } = await registerService(req.body);
-    res.status(201).json({ message: "User registered successfully", user, token });
+    const result = await registerService(req.body);
+
+    return successResponse(
+      res,
+      "User registered successfully",
+      result,
+      201
+    );
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return errorResponse(res, error.message, 400);
   }
 };
+
 
 // ---------------- Login ----------------
 export const login = async (req, res) => {
   try {
-    const { user, token } = await loginService(req.body);
-    res.status(200).json({ message: "Login successful", user, token });
+    const result = await loginService(req.body);
+
+    return successResponse(res, "Login successful", result);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return errorResponse(res, error.message, 401);
   }
 };
+
+
+
 
 // ---------------- Login With OTP ----------------
 export const loginWithOTP = async (req, res) => {

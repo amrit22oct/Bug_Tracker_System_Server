@@ -8,14 +8,33 @@ import { sendOTPEmail } from "../../utils/sendOTPEmail.js";
 export const registerService = async (data) => {
   let { name, username, email, password, role, avatar } = data;
 
-  if (!username) username = generateUsername(email);
+  // Validation
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  // Check existing user
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new Error("User already exists");
+  }
+
+  // Generate unique username if missing
+  if (!username) {
+    let isUnique = false;
+    while (!isUnique) {
+      username = generateUsername(email);
+      const exists = await User.findOne({ username });
+      if (!exists) isUnique = true;
+    }
+  }
+
   if (!name) name = username;
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) throw new Error("User already exists");
-
+  // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Create user
   const user = await User.create({
     name,
     username,
@@ -25,7 +44,11 @@ export const registerService = async (data) => {
     avatar,
   });
 
-  return { user, token: generateToken(user._id) };
+  // 🚀 RETURN CLEAN DATA (schema handles formatting)
+  return {
+    user, // auto-transformed by toJSON
+    token: generateToken(user._id, user.role),
+  };
 };
 
 // ---------------- Login ----------------
@@ -34,12 +57,29 @@ export const loginService = async ({ loginId, password }) => {
     $or: [{ username: loginId }, { email: loginId }],
   });
 
-  if (!user) throw new Error("User not found");
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Social login protection
+  if (!user.password) {
+    throw new Error("Login not allowed for social login");
+  }
 
   const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) throw new Error("Invalid credentials");
+  if (!isMatch) {
+    throw new Error("Invalid credentials");
+  }
 
-  return { user, token: generateToken(user._id) };
+  // ✅ Update last login time
+  user.lastLoginAt = new Date();
+  await user.save();
+
+  // 🚀 RETURN RAW USER (schema transforms it)
+  return {
+    user,
+    token: generateToken(user._id, user.role),
+  };
 };
 
 // ---------------- Send OTP ----------------
@@ -72,7 +112,11 @@ export const verifyOTPService = async ({ email, otp }) => {
 };
 
 // ---------------- Change Password ----------------
-export const changePasswordService = async ({ userId, oldPassword, newPassword }) => {
+export const changePasswordService = async ({
+  userId,
+  oldPassword,
+  newPassword,
+}) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
@@ -116,45 +160,43 @@ export const getAllUsersService = async () => {
   return await User.find();
 };
 
-
 // ---------------- Social Login ----------------
 export const socialLoginService = async ({
-   email,
-   name,
-   avatar,
-   providerId,
-   provider,
- }) => {
-   if (!email || !providerId || !provider) {
-     throw new Error("Missing social login data");
-   }
- 
-   let user = await User.findOne({ email });
- 
-   if (!user) {
-     const username = generateUsername(email);
- 
-     const newUserData = {
-       name: name || username,
-       username,
-       email,
-       avatar,
-     };
- 
-     // dynamic provider id (googleId, facebookId, etc.)
-     newUserData[`${provider}Id`] = providerId;
- 
-     user = await User.create(newUserData);
-   } else {
-     if (!user[`${provider}Id`]) {
-       user[`${provider}Id`] = providerId;
-       await user.save();
-     }
-   }
- 
-   return {
-     user,
-     token: generateToken(user._id),
-   };
- };
- 
+  email,
+  name,
+  avatar,
+  providerId,
+  provider,
+}) => {
+  if (!email || !providerId || !provider) {
+    throw new Error("Missing social login data");
+  }
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    const username = generateUsername(email);
+
+    const newUserData = {
+      name: name || username,
+      username,
+      email,
+      avatar,
+    };
+
+    // dynamic provider id (googleId, facebookId, etc.)
+    newUserData[`${provider}Id`] = providerId;
+
+    user = await User.create(newUserData);
+  } else {
+    if (!user[`${provider}Id`]) {
+      user[`${provider}Id`] = providerId;
+      await user.save();
+    }
+  }
+
+  return {
+    user,
+    token: generateToken(user._id),
+  };
+};

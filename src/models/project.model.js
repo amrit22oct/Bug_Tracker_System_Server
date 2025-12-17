@@ -1,3 +1,4 @@
+// src/models/project.model.js
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
@@ -10,13 +11,9 @@ const projectSchema = new Schema(
       minlength: 3,
       maxlength: 100,
     },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
+    description: { type: String, trim: true, maxlength: 500 },
 
-    // 🌐 External references
+    // Links
     projectLink: {
       type: String,
       trim: true,
@@ -28,70 +25,68 @@ const projectSchema = new Schema(
       match: [/^https?:\/\/.+/, "Please enter a valid documentation link"],
     },
 
-    // 📂 Optional project files (like specs, PDFs, etc.)
+    // Optional project files
     files: [
       {
-        name: { type: String },
-        fileType: { type: String },
-        fileUrl: { type: String },
+        name: String,
+        fileType: String,
+        fileUrl: String,
         uploadedAt: { type: Date, default: Date.now },
       },
     ],
 
-    members: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-
-    createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    // Project members & management
+    members: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    manager: { type: Schema.Types.ObjectId, ref: "User" }, // optional PM
 
     startDate: Date,
     endDate: Date,
-
-    status: {
-      type: String,
-      enum: ["Active", "On Hold", "Completed", "Archived"],
-      default: "Active",
-    },
-
-    // 🔗 Related bugs (optional for fast lookup)
-    bugs: [
+    priority: { type: String, enum: ["High", "Medium", "Low"], default: "Medium" },
+    category: String,
+    milestones: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Bug",
+        name: String,
+        dueDate: Date,
+        status: { type: String, enum: ["Pending", "Completed"], default: "Pending" },
       },
     ],
+    progressPercentage: { type: Number, default: 0 },
+    budget: Number,
+    client: String,
 
-    tags: [
-      {
-        type: String,
-        trim: true,
-        maxlength: 30,
-      },
-    ],
+    status: { type: String, enum: ["Active", "On Hold", "Completed", "Archived"], default: "Active" },
+    tags: [{ type: String, trim: true, maxlength: 30 }],
+    archived: { type: Boolean, default: false },
+    deletedAt: Date,
 
-    archived: {
-      type: Boolean,
-      default: false,
-    },
+    // Bugs
+    bugs: [{ type: Schema.Types.ObjectId, ref: "Bug" }],
 
-    // 📊 Project bug stats
+    // Project stats
     stats: {
       totalBugs: { type: Number, default: 0 },
       openBugs: { type: Number, default: 0 },
       resolvedBugs: { type: Number, default: 0 },
     },
+
+    comments: [
+      {
+        user: { type: Schema.Types.ObjectId, ref: "User" },
+        message: { type: String, trim: true, maxlength: 500 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    notifications: [
+      {
+        message: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );
 
-// Auto-update bug stats when bugs are added or removed
 projectSchema.methods.updateBugStats = async function () {
   const Bug = mongoose.model("Bug");
   const total = await Bug.countDocuments({ projectId: this._id });

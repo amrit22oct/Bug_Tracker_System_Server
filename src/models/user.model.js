@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       trim: true,
-      required: true, // auto-generated if not provided
+      required: true,
     },
     email: {
       type: String,
@@ -37,29 +37,28 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    phoneNumber: String,
+    bio: String,
+    location: String,
+    department: String,
+    profileComplete: { type: Boolean, default: false },
+    lastLoginAt: Date,
+    passwordChangedAt: Date,
+    isActive: { type: Boolean, default: true },
+    deletedAt: Date,
+    permissions: [String],
+
     // -------------------- OTP Fields --------------------
-    otp: {
-      type: String, // store OTP as string
-    },
-    otpExpires: {
-      type: Number, // timestamp in milliseconds
-    },
+    otp: String,
+    otpExpires: Number,
+
     // -------------------- Social Login --------------------
-    googleId: {
-      type: String,
-      default: null,
-    },
-    facebookId: {
-      type: String,
-      default: null,
-    },
-    // you can add more providers here like githubId, etc.
+    googleId: { type: String, default: null },
+    facebookId: { type: String, default: null },
+    // Add more providers like githubId, etc.
   },
-  {
-    timestamps: true, // adds createdAt & updatedAt
-  }
+  { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);
-
 export default User;
