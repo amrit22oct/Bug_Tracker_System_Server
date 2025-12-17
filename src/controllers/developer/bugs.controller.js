@@ -1,6 +1,6 @@
-import Bug from "../../models/bugModel.js";
-import User from "../../models/userModel.js";
-import Project from "../../models/projectModel.js";
+import Bug from "../../models/bug.model.js";
+import User from "../../models/user.model.js";
+import Project from "../../models/project.model.js";
 
 /* ================================================================
    🐞 CREATE BUG
@@ -22,16 +22,23 @@ export const createBug = async (req, res) => {
     } = req.body;
 
     if (!title || !description || !projectId)
-      return res.status(400).json({ success: false, message: "Title, description, and projectId are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Title, description, and projectId are required",
+      });
 
     const project = await Project.findById(projectId);
     if (!project)
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
     if (assignedTo) {
       const user = await User.findById(assignedTo);
       if (!user)
-        return res.status(404).json({ success: false, message: "Assigned user not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Assigned user not found" });
     }
 
     // ✅ Create the bug
@@ -153,11 +160,16 @@ export const deleteBug = async (req, res) => {
       if (bug.status === "Open")
         project.stats.openBugs = Math.max(0, project.stats.openBugs - 1);
       else if (bug.status === "Resolved")
-        project.stats.resolvedBugs = Math.max(0, project.stats.resolvedBugs - 1);
+        project.stats.resolvedBugs = Math.max(
+          0,
+          project.stats.resolvedBugs - 1
+        );
       await project.save();
     }
 
-    return res.status(200).json({ success: true, message: "Bug deleted successfully 🗑️" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Bug deleted successfully 🗑️" });
   } catch (error) {
     console.error("❌ Delete bug error:", error);
     return res.status(500).json({ success: false, message: error.message });
@@ -253,7 +265,9 @@ export const createSubBug = async (req, res) => {
   try {
     const parent = await Bug.findById(req.params.id);
     if (!parent)
-      return res.status(404).json({ success: false, message: "Parent bug not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Parent bug not found" });
 
     const { title, description, priority, severity } = req.body;
     const childBug = await Bug.create({
@@ -289,7 +303,8 @@ export const addBugHistory = async (req, res) => {
   try {
     const { action, note } = req.body;
     const bug = await Bug.findById(req.params.id);
-    if (!bug) return res.status(404).json({ success: false, message: "Bug not found" });
+    if (!bug)
+      return res.status(404).json({ success: false, message: "Bug not found" });
 
     const log = {
       user: req.user?._id,

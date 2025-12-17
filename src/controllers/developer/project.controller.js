@@ -1,6 +1,6 @@
 // controllers/projectController.js
-import Project from "../../models/projectModel.js";
-import Bug from "../../models/bugModel.js";
+import Project from "../../models/project.model.js";
+import Bug from "../../models/bug.model.js";
 
 /* -------------------------------------------------------------------------- */
 /*                              🧱 CRUD OPERATIONS                            */

@@ -1,5 +1,5 @@
 // src/controllers/authControllers.js
-import User from "../../models/userModel.js";
+import User from "../../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
@@ -367,7 +367,4 @@ export const resetPassword = async (req, res) => {
     console.error("Reset Password Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
-
 };
-
-

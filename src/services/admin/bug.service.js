@@ -1,7 +1,10 @@
-import Bug from "../../models/bugModel.js";
-import User from "../../models/userModel.js";
-import Project from "../../models/projectModel.js";
-import { validateBugCreateInput, buildBugStatsPipeline } from "../../helpers/bug/bug.helper.js";
+import Bug from "../../models/bug.model.js";
+import User from "../../models/user.model.js";
+import Project from "../../models/project.model.js";
+import {
+  validateBugCreateInput,
+  buildBugStatsPipeline,
+} from "../../helpers/bug/bug.helper.js";
 
 /* ================= CREATE BUG ================= */
 export const createBugService = async (data, userId) => {

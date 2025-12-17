@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+import User from "../models/user.model.js";
 
 /**
  * Middleware: Protect routes
@@ -11,12 +11,17 @@ export const protect = async (req, res, next) => {
     let token;
 
     // Check for token in Authorization header (Bearer <token>)
-    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
       token = req.headers.authorization.split(" ")[1];
     }
 
     if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token provided" });
+      return res
+        .status(401)
+        .json({ message: "Not authorized, no token provided" });
     }
 
     // Verify token
@@ -31,10 +36,11 @@ export const protect = async (req, res, next) => {
     // Attach user to request object
     req.user = user;
     next();
-
   } catch (error) {
     console.error("AUTH ERROR:", error.message);
-    res.status(401).json({ message: "Not authorized, token failed or expired" });
+    res
+      .status(401)
+      .json({ message: "Not authorized, token failed or expired" });
   }
 };
 
@@ -70,7 +76,9 @@ export const adminOrProjectManager = (req, res, next) => {
   }
 
   if (req.user.role !== "Admin" && req.user.role !== "ProjectManager") {
-    return res.status(403).json({ message: "Access denied: Admin or ProjectManager only" });
+    return res
+      .status(403)
+      .json({ message: "Access denied: Admin or ProjectManager only" });
   }
 
   next();
