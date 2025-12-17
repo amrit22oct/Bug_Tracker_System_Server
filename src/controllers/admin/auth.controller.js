@@ -8,7 +8,7 @@ import {
   changePasswordService,
   forgotPasswordService,
   resetPasswordService,
-} from "../../Services/admin/auth.service.js";
+} from "../../services/admin/auth.service.js";
 
 
 // ---------------- Register ----------------
