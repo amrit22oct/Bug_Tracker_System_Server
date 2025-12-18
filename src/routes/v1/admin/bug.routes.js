@@ -10,9 +10,9 @@ import { protect } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", protect, createBug);
-router.get("/", protect, getAllBugs);
-router.get("/:id", protect, getBugById);
+router.post("/create-bug", protect, createBug);
+router.get("/get-all-bugs", protect, getAllBugs);
+router.get("/get-bug/:id", protect, getBugById);
 router.put("/:id", protect, updateBug);
 router.delete("/:id", protect, deleteBug);
 

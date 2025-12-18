@@ -12,9 +12,11 @@ import {
   getBugStatsService,
 } from "../../services/admin/bug.service.js";
 
+/* ================= CREATE BUG ================= */
 export const createBug = async (req, res) => {
   try {
-    const bug = await bugService.createBugService(req.body, req.user?._id);
+    const bug = await createBugService(req.body, req.user?._id);
+
     res.status(201).json({
       success: true,
       message: "🐞 Bug reported successfully",
@@ -25,27 +27,30 @@ export const createBug = async (req, res) => {
   }
 };
 
-export const getAllBugs = async (_, res) => {
+/* ================= GET ALL BUGS ================= */
+export const getAllBugs = async (req, res) => {
   try {
-    const bugs = await bugService.getAllBugsService();
+    const bugs = await getAllBugsService();
     res.json({ success: true, count: bugs.length, data: bugs });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });
   }
 };
 
+/* ================= GET BUG BY ID ================= */
 export const getBugById = async (req, res) => {
   try {
-    const bug = await bugService.getBugByIdService(req.params.id);
+    const bug = await getBugByIdService(req.params.id);
     res.json({ success: true, data: bug });
   } catch (e) {
     res.status(404).json({ success: false, message: e.message });
   }
 };
 
+/* ================= UPDATE BUG ================= */
 export const updateBug = async (req, res) => {
   try {
-    const bug = await bugService.updateBugService(req.params.id, req.body);
+    const bug = await updateBugService(req.params.id, req.body);
     res.json({
       success: true,
       message: "Bug updated successfully 🔧",
@@ -56,21 +61,20 @@ export const updateBug = async (req, res) => {
   }
 };
 
+/* ================= DELETE BUG ================= */
 export const deleteBug = async (req, res) => {
   try {
-    await bugService.deleteBugService(req.params.id);
+    await deleteBugService(req.params.id);
     res.json({ success: true, message: "Bug deleted successfully 🗑️" });
   } catch (e) {
     res.status(404).json({ success: false, message: e.message });
   }
 };
 
+/* ================= ASSIGN BUG ================= */
 export const assignBug = async (req, res) => {
   try {
-    const bug = await bugService.assignBugService(
-      req.params.id,
-      req.body.userId
-    );
+    const bug = await assignBugService(req.params.id, req.body.userId);
     res.json({
       success: true,
       message: "Bug assigned successfully 👤",
@@ -81,9 +85,10 @@ export const assignBug = async (req, res) => {
   }
 };
 
+/* ================= UPDATE BUG STATUS ================= */
 export const updateBugStatus = async (req, res) => {
   try {
-    const bug = await bugService.updateBugStatusService(
+    const bug = await updateBugStatusService(
       req.params.id,
       req.body.status
     );
@@ -93,9 +98,10 @@ export const updateBugStatus = async (req, res) => {
   }
 };
 
+/* ================= LINK RELATED BUGS ================= */
 export const linkRelatedBugs = async (req, res) => {
   try {
-    const data = await bugService.linkRelatedBugsService(
+    const data = await linkRelatedBugsService(
       req.params.id,
       req.body.relatedBugId
     );
@@ -105,9 +111,10 @@ export const linkRelatedBugs = async (req, res) => {
   }
 };
 
+/* ================= CREATE SUB BUG ================= */
 export const createSubBug = async (req, res) => {
   try {
-    const bug = await bugService.createSubBugService(
+    const bug = await createSubBugService(
       req.params.id,
       req.body,
       req.user?._id
@@ -120,13 +127,15 @@ export const createSubBug = async (req, res) => {
   }
 };
 
+/* ================= ADD BUG HISTORY ================= */
 export const addBugHistory = async (req, res) => {
   try {
-    const history = await bugService.addBugHistoryService(req.params.id, {
-      user: req.user?._id,
+    const history = await addBugHistoryService(req.params.id, {
+      changedBy: req.user?._id,
       ...req.body,
-      date: new Date(),
+      changedAt: new Date(),
     });
+
     res.json({
       success: true,
       message: "🧠 Bug history updated",
@@ -137,9 +146,10 @@ export const addBugHistory = async (req, res) => {
   }
 };
 
+/* ================= GET BUG STATS ================= */
 export const getBugStats = async (req, res) => {
   try {
-    const stats = await bugService.getBugStatsService(req.query.projectId);
+    const stats = await getBugStatsService(req.query.projectId);
     res.json({ success: true, data: stats });
   } catch (e) {
     res.status(500).json({ success: false, message: e.message });

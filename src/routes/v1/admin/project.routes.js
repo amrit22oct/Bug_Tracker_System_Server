@@ -19,7 +19,10 @@ import {
   syncProjectBugStats,
 } from "../../../controllers/admin/project.controller.js"; // ✅ singular, matches your file
 
-import { protect, authorisedRoles } from "../../../middlewares/authMiddleware.js";
+import {
+  protect,
+  authorisedRoles,
+} from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -29,17 +32,17 @@ const router = express.Router();
 
 // Create
 router.post(
-  "/",
+  "/create-project",
   protect,
   authorisedRoles("Admin", "Project Manager"),
   createProject
 );
 
 // Get all
-router.get("/", protect, getAllProjects);
+router.get("/get-all-projects", protect, getAllProjects);
 
 // Get by ID
-router.get("/:id", protect, getProjectById);
+router.get("/get-project/:id", protect, getProjectById);
 
 // Update
 router.put(

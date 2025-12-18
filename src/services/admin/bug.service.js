@@ -35,18 +35,14 @@ export const getAllBugsService = async () =>
   Bug.find()
     .populate("reportedBy", "name email")
     .populate("assignedTo", "name email")
-    .populate("projectId", "name")
-    .populate("relatedBugs", "title status")
-    .populate("parentBug", "title");
+    .populate("projectId", "name");
 
 /* ================= GET BUG BY ID ================= */
 export const getBugByIdService = async (id) => {
   const bug = await Bug.findById(id)
     .populate("reportedBy", "name email")
     .populate("assignedTo", "name email")
-    .populate("projectId", "name")
-    .populate("relatedBugs", "title status")
-    .populate("parentBug", "title");
+    .populate("projectId", "name");
 
   if (!bug) throw new Error("Bug not found");
   return bug;

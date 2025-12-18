@@ -10,8 +10,31 @@ export const createProject = async (data, userId) => {
 
 export const getAllProjects = async () => {
   return await Project.find()
-    .populate("members", "name email")
-    .populate("createdBy", "name email");
+    // Users
+    .populate("members", "name email role") // all project members
+    .populate("createdBy", "name email role") // who created the project
+    .populate("manager", "name email role") // project manager
+
+    // Bugs
+    .populate({
+      path: "bugs",
+      select: "title status priority severity createdAt assignedTo reportedBy",
+      populate: [
+        { path: "assignedTo", select: "name email" },
+        { path: "reportedBy", select: "name email" },
+      ],
+    })
+
+    // Comments
+    .populate({
+      path: "comments.user",
+      select: "name email role",
+    })
+
+    // Milestones, if needed
+    // .populate("milestones") // optional, not ref in schema
+
+    .lean(); // returns plain JS objects
 };
 
 export const getProjectById = async (id) => {
