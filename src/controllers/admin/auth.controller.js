@@ -3,31 +3,27 @@ import {
   loginService,
   sendOTPService,
   verifyOTPService,
-  socialLoginService,   
+  socialLoginService,
   getAllUsersService,
   changePasswordService,
   forgotPasswordService,
   resetPasswordService,
 } from "../../services/admin/auth.service.js";
-import { successResponse, errorResponse } from "../../helpers/response.helper.js"
-
+import {
+  successResponse,
+  errorResponse,
+} from "../../helpers/response/response.helper.js";
 
 // ---------------- Register ----------------
 export const register = async (req, res) => {
   try {
     const result = await registerService(req.body);
 
-    return successResponse(
-      res,
-      "User registered successfully",
-      result,
-      201
-    );
+    return successResponse(res, "User registered successfully", result, 201);
   } catch (error) {
     return errorResponse(res, error.message, 400);
   }
 };
-
 
 // ---------------- Login ----------------
 export const login = async (req, res) => {
@@ -39,9 +35,6 @@ export const login = async (req, res) => {
     return errorResponse(res, error.message, 401);
   }
 };
-
-
-
 
 // ---------------- Login With OTP ----------------
 export const loginWithOTP = async (req, res) => {
@@ -102,7 +95,6 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 // ---------------- Social Login ----------------
 export const socialLogin = async (req, res) => {
