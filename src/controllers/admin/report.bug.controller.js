@@ -4,6 +4,7 @@ import {
    getReportByIdService,
    reviewReportService,
    deleteReportService,
+   getAllReportsService,
  } from "../../services/admin/report.bug.service.js";
  
  /* ================= CREATE REPORT ================= */
@@ -20,6 +21,21 @@ import {
    }
  };
  
+
+ /* ================= GET ALL REPORTS ================= */
+export const getAllReports = async (req, res) => {
+   try {
+     const reports = await getAllReportsService();
+     res.json({
+       success: true,
+       count: reports.length,
+       data: reports,
+     });
+   } catch (e) {
+     res.status(500).json({ success: false, message: e.message });
+   }
+ };
+
  /* ================= GET REPORTS BY PROJECT ================= */
  export const getReportsByProject = async (req, res) => {
    try {

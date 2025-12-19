@@ -2,86 +2,100 @@ import ReportBug from "../../models/report.bug.model.js";
 import Bug from "../../models/bug.model.js";
 import Project from "../../models/project.model.js";
 import User from "../../models/user.model.js";
-import { createBugService } from "../../services/admin/bug.service.js"; 
+import { createBugService } from "../../services/admin/bug.service.js";
 
 /* ================= CREATE REPORT ================= */
 export const createReportService = async (data, userId) => {
-   const { projectId, bugId } = data;
- 
-   const project = await Project.findById(projectId);
-   if (!project) throw new Error("Project not found");
- 
-   let bug;
- 
-   /* ================= BUG HANDLING ================= */
-   if (bugId) {
-     bug = await Bug.findById(bugId);
-     if (!bug) throw new Error("Bug not found");
-   } else {
-     /* ---------- Dynamically extract bug fields ---------- */
-     const bugFields = [
-       "title",
-       "description",
-       "priority",
-       "severity",
-       "type",
-       "tags",
-       "environment",
-       "reproducible",
-       "attachments",
-       "parentBug",
-       "linkedBugs",
-       "dueDate",
-       "estimatedFixTime",
-       "severityScore",
-       "source",
-       "assignedTo",
-     ];
- 
-     const bugPayload = {};
- 
-     for (const field of bugFields) {
-       if (data[field] !== undefined) {
-         bugPayload[field] = data[field];
-       }
-     }
- 
-     bugPayload.projectId = projectId;
- 
-     bug = await createBugService(bugPayload, userId);
-   }
- 
-   /* ================= REPORT HANDLING ================= */
-   const reportFields = [
-     "title",
-     "stepsToReproduce",
-     "expectedResult",
-     "actualResult",
-     "attachments",
-   ];
- 
-   const reportPayload = {};
- 
-   for (const field of reportFields) {
-     if (data[field] !== undefined) {
-       reportPayload[field] = data[field];
-     }
-   }
- 
-   /* ================= CREATE REPORT ================= */
-   const report = await ReportBug.create({
-     ...reportPayload,
-     title: reportPayload.title || bug.title,
-     projectId,
-     bugId: bug._id,
-     reportedBy: userId,
-     status: "Pending",
-   });
- 
-   return report;
- };
- 
+  const { projectId, bugId } = data;
 
+  const project = await Project.findById(projectId);
+  if (!project) throw new Error("Project not found");
+
+  let bug;
+
+  /* ================= BUG HANDLING ================= */
+  if (bugId) {
+    bug = await Bug.findById(bugId);
+    if (!bug) throw new Error("Bug not found");
+  } else {
+    /* ---------- Dynamically extract bug fields ---------- */
+    const bugFields = [
+      "title",
+      "description",
+      "priority",
+      "severity",
+      "type",
+      "tags",
+      "environment",
+      "reproducible",
+      "attachments",
+      "parentBug",
+      "linkedBugs",
+      "dueDate",
+      "estimatedFixTime",
+      "severityScore",
+      "source",
+      "assignedTo",
+    ];
+
+    const bugPayload = {};
+
+    for (const field of bugFields) {
+      if (data[field] !== undefined) {
+        bugPayload[field] = data[field];
+      }
+    }
+
+    bugPayload.projectId = projectId;
+
+    bug = await createBugService(bugPayload, userId);
+  }
+
+  /* ================= REPORT HANDLING ================= */
+  const reportFields = [
+    "title",
+    "stepsToReproduce",
+    "expectedResult",
+    "actualResult",
+    "attachments",
+  ];
+
+  const reportPayload = {};
+
+  for (const field of reportFields) {
+    if (data[field] !== undefined) {
+      reportPayload[field] = data[field];
+    }
+  }
+
+  /* ================= CREATE REPORT ================= */
+  const report = await ReportBug.create({
+    ...reportPayload,
+    title: reportPayload.title || bug.title,
+    projectId,
+    bugId: bug._id,
+    reportedBy: userId,
+    status: "Pending",
+  });
+
+  return report;
+};
+
+/* ================= GET ALL REPORTS ================= */
+export const getAllReportsService = async () => {
+  return ReportBug.find({ deletedAt: null })
+    .populate("reportedBy", "name email")
+    .populate("reviewedBy", "name email")
+    .populate("projectId", "name")
+    .populate({
+      path: "bugId",
+      populate: [
+        { path: "assignedTo", select: "name email" },
+        { path: "reportedBy", select: "name email" },
+      ],
+    })
+    .sort({ createdAt: -1 });
+};
 
 /* ================= GET REPORTS BY PROJECT ================= */
 export const getReportsByProjectService = async (projectId) => {

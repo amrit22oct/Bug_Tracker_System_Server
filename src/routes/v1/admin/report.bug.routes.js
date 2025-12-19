@@ -5,6 +5,7 @@ import {
   getReportById,
   reviewReport,
   deleteReport,
+  getAllReports,
 } from "../../../controllers/admin/report.bug.controller.js";
 
 import {
@@ -24,6 +25,14 @@ router.get(
   authorisedRoles("admin", "manager"),
   getReportsByProject
 );
+
+/* ================= ADMIN / MANAGER ================= */
+router.get(
+   "/get-all",
+   protect,
+   // authorisedRoles("admin", "manager"),
+   getAllReports
+ );
 
 router.get(
   "/:id",
