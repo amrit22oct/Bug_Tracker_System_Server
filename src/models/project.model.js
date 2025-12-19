@@ -13,7 +13,12 @@ const projectSchema = new Schema(
     },
     description: { type: String, trim: true, maxlength: 500 },
 
-    // Links
+    status: {
+      type: String,
+      enum: ["Planned", "In Progress", "On Hold", "Completed", "Archived", "Cancelled"],
+      default: "Planned",
+    },
+
     projectLink: {
       type: String,
       trim: true,
@@ -25,7 +30,6 @@ const projectSchema = new Schema(
       match: [/^https?:\/\/.+/, "Please enter a valid documentation link"],
     },
 
-    // Optional project files
     files: [
       {
         name: String,
@@ -35,13 +39,19 @@ const projectSchema = new Schema(
       },
     ],
 
-    // Project members & management
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    manager: { type: Schema.Types.ObjectId, ref: "User" }, // optional PM
+    manager: { type: Schema.Types.ObjectId, ref: "User" },
+    teamLeader: { type: Schema.Types.ObjectId, ref: "User" },
 
-    startDate: Date,
+    startDate: { type: Date, default: Date.now },
     endDate: Date,
+
+    estimatedStartDate: Date,
+    estimatedEndDate: Date,
+    actualStartDate: Date,
+    actualEndDate: Date,
+
     priority: { type: String, enum: ["High", "Medium", "Low"], default: "Medium" },
     category: String,
     milestones: [
@@ -54,20 +64,19 @@ const projectSchema = new Schema(
     progressPercentage: { type: Number, default: 0 },
     budget: Number,
     client: String,
-
-    status: { type: String, enum: ["Active", "On Hold", "Completed", "Archived"], default: "Active" },
     tags: [{ type: String, trim: true, maxlength: 30 }],
     archived: { type: Boolean, default: false },
     deletedAt: Date,
 
-    // Bugs
     bugs: [{ type: Schema.Types.ObjectId, ref: "Bug" }],
+    reports: [{ type: Schema.Types.ObjectId, ref: "ReportBug" }],
 
-    // Project stats
     stats: {
       totalBugs: { type: Number, default: 0 },
       openBugs: { type: Number, default: 0 },
       resolvedBugs: { type: Number, default: 0 },
+      pendingReports: { type: Number, default: 0 },
+      approvedReports: { type: Number, default: 0 },
     },
 
     comments: [
@@ -87,13 +96,37 @@ const projectSchema = new Schema(
   { timestamps: true }
 );
 
+/* ================= METHODS ================= */
+
+// Sync Bug Stats
 projectSchema.methods.updateBugStats = async function () {
   const Bug = mongoose.model("Bug");
   const total = await Bug.countDocuments({ projectId: this._id });
   const open = await Bug.countDocuments({ projectId: this._id, status: "Open" });
   const resolved = await Bug.countDocuments({ projectId: this._id, status: "Resolved" });
 
-  this.stats = { totalBugs: total, openBugs: open, resolvedBugs: resolved };
+  this.stats.totalBugs = total;
+  this.stats.openBugs = open;
+  this.stats.resolvedBugs = resolved;
+  await this.save();
+};
+
+// Sync Report Stats
+projectSchema.methods.updateReportStats = async function () {
+  const ReportBug = mongoose.model("ReportBug");
+  const pending = await ReportBug.countDocuments({ projectId: this._id, status: "Pending" });
+  const approved = await ReportBug.countDocuments({ projectId: this._id, status: "Approved" });
+
+  this.stats.pendingReports = pending;
+  this.stats.approvedReports = approved;
+  await this.save();
+};
+
+// Auto-update progress based on milestones
+projectSchema.methods.updateProgress = async function () {
+  if (!this.milestones || this.milestones.length === 0) return;
+  const completed = this.milestones.filter((m) => m.status === "Completed").length;
+  this.progressPercentage = Math.round((completed / this.milestones.length) * 100);
   await this.save();
 };
 

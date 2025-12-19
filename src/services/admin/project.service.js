@@ -1,5 +1,6 @@
 import Project from "../../models/project.model.js";
 import Bug from "../../models/bug.model.js";
+import ReportBug from "../../models/report.bug.model.js";
 import { calculateCompletionRatio } from "../../helpers/project/project.helper.js";
 
 /* ------------------------ CRUD OPERATIONS ------------------------ */
@@ -10,38 +11,40 @@ export const createProject = async (data, userId) => {
 
 export const getAllProjects = async () => {
   return await Project.find()
-    // Users
-    .populate("members", "name email role") // all project members
-    .populate("createdBy", "name email role") // who created the project
-    .populate("manager", "name email role") // project manager
-
-    // Bugs
+    .populate("members", "name email role")
+    .populate("createdBy", "name email role")
+    .populate("manager", "name email role")
     .populate({
       path: "bugs",
-      select: "title status priority severity createdAt assignedTo reportedBy",
+      select: "title status priority severity assignedTo reportedBy",
       populate: [
         { path: "assignedTo", select: "name email" },
         { path: "reportedBy", select: "name email" },
       ],
     })
-
-    // Comments
     .populate({
-      path: "comments.user",
-      select: "name email role",
+      path: "reports",
+      select: "title status reportedBy reviewedBy",
+      populate: [
+        { path: "reportedBy", select: "name email" },
+        { path: "reviewedBy", select: "name email" },
+      ],
     })
-
-    // Milestones, if needed
-    // .populate("milestones") // optional, not ref in schema
-
-    .lean(); // returns plain JS objects
+    .lean();
 };
 
 export const getProjectById = async (id) => {
   const project = await Project.findById(id)
     .populate("members", "name email")
     .populate("createdBy", "name email")
-    .populate({ path: "bugs", select: "title status priority severity" });
+    .populate({
+      path: "bugs",
+      select: "title status priority severity",
+    })
+    .populate({
+      path: "reports",
+      select: "title status",
+    });
 
   if (!project) throw new Error("Project not found");
   return project;
@@ -66,8 +69,7 @@ export const deleteProject = async (id) => {
 export const addMemberToProject = async (projectId, memberId) => {
   const project = await Project.findById(projectId);
   if (!project) throw new Error("Project not found");
-  if (project.members.includes(memberId))
-    throw new Error("User is already a member");
+  if (project.members.includes(memberId)) throw new Error("User is already a member");
 
   project.members.push(memberId);
   await project.save();
@@ -189,21 +191,27 @@ export const cloneProject = async (id, userId) => {
   return clone;
 };
 
-export const syncProjectBugStats = async (id) => {
-  const project = await Project.findById(id);
+/* ------------------------ SYNC BUG & REPORT STATS ------------------------ */
+
+export const syncProjectStats = async (projectId) => {
+  const project = await Project.findById(projectId);
   if (!project) throw new Error("Project not found");
 
-  const total = await Bug.countDocuments({ projectId: project._id });
-  const open = await Bug.countDocuments({
-    projectId: project._id,
-    status: "Open",
-  });
-  const resolved = await Bug.countDocuments({
-    projectId: project._id,
-    status: "Resolved",
-  });
+  const totalBugs = await Bug.countDocuments({ projectId });
+  const openBugs = await Bug.countDocuments({ projectId, status: "Open" });
+  const resolvedBugs = await Bug.countDocuments({ projectId, status: "Resolved" });
 
-  project.stats = { totalBugs: total, openBugs: open, resolvedBugs: resolved };
+  const pendingReports = await ReportBug.countDocuments({ projectId, status: "Pending" });
+  const approvedReports = await ReportBug.countDocuments({ projectId, status: "Approved" });
+
+  project.stats = {
+    totalBugs,
+    openBugs,
+    resolvedBugs,
+    pendingReports,
+    approvedReports,
+  };
+
   await project.save();
   return project.stats;
 };
