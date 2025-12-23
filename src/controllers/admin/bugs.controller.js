@@ -1,5 +1,6 @@
 import {
   createBugService,
+  createBugAndReportService,
   getAllBugsService,
   getBugByIdService,
   updateBugService,
@@ -27,6 +28,25 @@ export const createBug = async (req, res) => {
     res.status(400).json({ success: false, message: e.message });
   }
 };
+
+/* ==================== CREATE AND REPORT BUG ============= */
+export const createBugAndReport = async (req, res) => {
+  try {
+    const bug = await createBugAndReportService(req.body, req.user?._id);
+
+    res.status(201).json({
+      success: true,
+      message: "Bug created and reported successfully",
+      data: bug,
+    });
+  } catch (e) {
+    res.status(400).json({
+      success: false,
+      message: e.message,
+    });
+  }
+};
+
 
 /* ================= GET ALL BUGS ================= */
 export const getAllBugs = async (req, res) => {

@@ -1,5 +1,6 @@
 import Project from "../../models/project.model.js";
 import Bug from "../../models/bug.model.js";
+import Team from "../../models/team.model.js";
 import ReportBug from "../../models/report.bug.model.js";
 import { calculateCompletionRatio } from "../../helpers/project/project.helper.js";
 
@@ -83,6 +84,27 @@ export const removeMemberFromProject = async (projectId, memberId) => {
   project.members = project.members.filter((id) => id.toString() !== memberId);
   await project.save();
   return project.members;
+};
+
+/* ================= ASSIGN TEAMS TO PROJECT ================= */
+export const assignTeamsToProjectService = async (projectId, teamIds) => {
+  const project = await Project.findById(projectId);
+  if (!project) throw new Error("Project not found");
+  if (project.archived) throw new Error("Project is archived");
+
+  const teamsCount = await Team.countDocuments({
+    _id: { $in: teamIds },
+    deletedAt: null,
+  });
+
+  if (teamsCount !== teamIds.length) {
+    throw new Error("One or more teams not found");
+  }
+
+  project.teams = [...new Set([...project.teams, ...teamIds])];
+  await project.save();
+
+  return project;
 };
 
 /* ------------------------ PROJECT MANAGEMENT ------------------------ */

@@ -98,6 +98,27 @@ export const removeMemberFromProject = async (req, res) => {
   }
 };
 
+/* ================= ASSIGN TEAMS TO PROJECT ================= */
+export const assignTeamsToProject = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { teamIds } = req.body;
+
+    const project = await projectService.assignTeamsToProjectService(projectId, teamIds);
+
+    res.status(200).json({
+      success: true,
+      message: "Teams assigned to project successfully",
+      data: project,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 /* -------------------------------------------------------------------------- */
 /*                            ⚙️ PROJECT MANAGEMENT                           */
 /* -------------------------------------------------------------------------- */

@@ -2,10 +2,12 @@
 import Bug from "../../models/bug.model.js";
 import User from "../../models/user.model.js";
 import Project from "../../models/project.model.js";
+import ReportBug from "../../models/report.bug.model.js";
 import {
   validateBugCreateInput,
   buildBugStatsPipeline,
 } from "../../helpers/bug/bug.helper.js";
+import mongoose from "mongoose";
 
 /* ================= CREATE BUG ================= */
 export const createBugService = async (data, userId) => {
@@ -48,6 +50,96 @@ export const createBugService = async (data, userId) => {
   await project.save();
 
   return bug;
+};
+
+/* ================ CREATE AND REPORT BUG==================*/
+export const createBugAndReportService = async (data, userId) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    validateBugCreateInput(data);
+
+    const { projectId, title, assignedTo } = data;
+
+    /* ================= PROJECT CHECK ================= */
+    const project = await Project.findById(projectId).session(session);
+    if (!project) throw new Error("Project not found");
+    if (project.archived) throw new Error("Project is archived");
+
+    /* ================= DUPLICATE BUG CHECK ================= */
+    const existingBug = await Bug.findOne({
+      projectId,
+      title: { $regex: `^${title}$`, $options: "i" },
+      deletedAt: null,
+    }).session(session);
+
+    if (existingBug) {
+      throw new Error("Bug with the same title already exists in this project");
+    }
+
+    /* ================= ASSIGNED USER CHECK ================= */
+    if (assignedTo) {
+      const user = await User.findById(assignedTo).session(session);
+      if (!user) throw new Error("Assigned user not found");
+    }
+
+    /* ================= CREATE BUG ================= */
+    const [bug] = await Bug.create(
+      [
+        {
+          ...data,
+          reportedBy: userId,
+          statusHistory: [
+            {
+              status: "Open",
+              changedBy: userId,
+            },
+          ],
+        },
+      ],
+      { session }
+    );
+
+    /* ================= CREATE REPORT BUG ================= */
+    await ReportBug.create(
+      [
+        {
+          reportedBy: userId,
+          projectId,
+          bugId: bug._id,
+
+          title: data.title,
+          description: data.description,
+          priority: data.priority,
+          severity: data.severity,
+          tags: data.tags,
+          assignedTo: data.assignedTo,
+          environment: data.environment,
+          reproducible: data.reproducible,
+          attachments: data.attachments,
+          dueDate: data.dueDate,
+          estimatedFixTime: data.estimatedFixTime,
+        },
+      ],
+      { session }
+    );
+
+    /* ================= UPDATE PROJECT ================= */
+    project.bugs.push(bug._id);
+    project.stats.totalBugs += 1;
+    project.stats.openBugs += 1;
+    await project.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return bug;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 

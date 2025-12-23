@@ -54,6 +54,13 @@ const projectSchema = new Schema(
 
     priority: { type: String, enum: ["High", "Medium", "Low"], default: "Medium" },
     category: String,
+    teamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Team",
+      required: true,
+    },
+    
+    
     milestones: [
       {
         name: String,

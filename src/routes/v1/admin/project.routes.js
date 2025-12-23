@@ -17,6 +17,7 @@ import {
   filterProjects,
   cloneProject,
   syncProjectBugStats,
+  assignTeamsToProject,
 } from "../../../controllers/admin/project.controller.js"; // ✅ singular, matches your file
 
 import {
@@ -43,6 +44,8 @@ router.get("/get-all-projects", protect, getAllProjects);
 
 // Get by ID
 router.get("/get-project/:id", protect, getProjectById);
+
+router.post("/:projectId/teams", protect, assignTeamsToProject);
 
 // Update
 router.put(
