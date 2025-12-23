@@ -57,7 +57,7 @@ const projectSchema = new Schema(
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Team",
-      required: true,
+      
     },
     
     
