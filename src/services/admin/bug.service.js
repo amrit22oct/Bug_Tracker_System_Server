@@ -69,6 +69,17 @@ export const getBugByIdService = async (id) => {
   return bug;
 };
 
+/* ===================== GET BUG BY PROJECT ID ===============*/
+
+export const getBugByProjectIdService = async (projectId) => {
+  // Populate the 'bugs' field to get full bug documents
+  const project = await Project.findById(projectId).populate('bugs');
+  if (!project) {
+    throw new Error('Project not found');
+  }
+  return project.bugs; // now returns full bug details
+};
+
 /* ================= UPDATE BUG ================= */
 export const updateBugService = async (id, updates) => {
   const bug = await Bug.findByIdAndUpdate(id, updates, {

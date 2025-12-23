@@ -4,6 +4,7 @@ import {
   getBugByIdService,
   updateBugService,
   deleteBugService,
+  getBugByProjectIdService,
   assignBugService,
   updateBugStatusService,
   linkRelatedBugsService,
@@ -44,6 +45,17 @@ export const getBugById = async (req, res) => {
     res.json({ success: true, data: bug });
   } catch (e) {
     res.status(404).json({ success: false, message: e.message });
+  }
+};
+
+
+/*==================GET BUG BY PROJECT ID ============*/
+export const getBugByProjectId = async (req, res) => {
+  try {
+    const bug = await getBugByProjectIdService(req.params.id);
+    res.json({ success: true, data: bug });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
   }
 };
 

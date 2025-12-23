@@ -16,7 +16,7 @@ import {
 const router = express.Router();
 
 /* ================= USER ================= */
-router.post("/", protect, createReport);
+router.post("/create-bug-report", protect, createReport);
 
 /* ================= ADMIN / MANAGER ================= */
 router.get(

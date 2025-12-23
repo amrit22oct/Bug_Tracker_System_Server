@@ -34,7 +34,7 @@ const router = express.Router();
 router.post(
   "/create-project",
   protect,
-  authorisedRoles("Admin", "Project Manager"),
+  // authorisedRoles("Admin", "Project Manager"),
   createProject
 );
 
