@@ -15,12 +15,10 @@ export const createBugService = async (data, userId) => {
 
   const { projectId, title, assignedTo } = data;
 
-  /* ================= PROJECT CHECK ================= */
   const project = await Project.findById(projectId);
   if (!project) throw new Error("Project not found");
   if (project.archived) throw new Error("Project is archived");
 
-  /* ================= DUPLICATE BUG CHECK ================= */
   const existingBug = await Bug.findOne({
     projectId,
     title: { $regex: `^${title}$`, $options: "i" },
@@ -31,7 +29,6 @@ export const createBugService = async (data, userId) => {
     throw new Error("Bug with same title already exists in this project");
   }
 
-  /* ================= ASSIGNED USER CHECK ================= */
   if (assignedTo) {
     const user = await User.findById(assignedTo);
     if (!user) throw new Error("Assigned user not found");
@@ -41,16 +38,24 @@ export const createBugService = async (data, userId) => {
   const bug = await Bug.create({
     ...data,
     reportedBy: userId,
+    status: "Open",
   });
 
   /* ================= UPDATE PROJECT ================= */
   project.bugs.push(bug._id);
-  project.stats.totalBugs += 1;
-  project.stats.openBugs += 1;
+
+  // 🔴 SAVE FIRST (important)
   await project.save();
+
+  // 🔥 NOW FORCE STATUS & PROGRESS
+  await project.updateBugStats();
+  await project.recalculateProgress();
 
   return bug;
 };
+
+
+
 
 /* ================ CREATE AND REPORT BUG==================*/
 export const createBugAndReportService = async (data, userId) => {
@@ -59,15 +64,12 @@ export const createBugAndReportService = async (data, userId) => {
 
   try {
     validateBugCreateInput(data);
-
     const { projectId, title, assignedTo } = data;
 
-    /* ================= PROJECT CHECK ================= */
     const project = await Project.findById(projectId).session(session);
     if (!project) throw new Error("Project not found");
     if (project.archived) throw new Error("Project is archived");
 
-    /* ================= DUPLICATE BUG CHECK ================= */
     const existingBug = await Bug.findOne({
       projectId,
       title: { $regex: `^${title}$`, $options: "i" },
@@ -75,10 +77,9 @@ export const createBugAndReportService = async (data, userId) => {
     }).session(session);
 
     if (existingBug) {
-      throw new Error("Bug with the same title already exists in this project");
+      throw new Error("Bug with same title already exists in this project");
     }
 
-    /* ================= ASSIGNED USER CHECK ================= */
     if (assignedTo) {
       const user = await User.findById(assignedTo).session(session);
       if (!user) throw new Error("Assigned user not found");
@@ -90,25 +91,20 @@ export const createBugAndReportService = async (data, userId) => {
         {
           ...data,
           reportedBy: userId,
-          statusHistory: [
-            {
-              status: "Open",
-              changedBy: userId,
-            },
-          ],
+          status: "Open",
+          statusHistory: [{ status: "Open", changedBy: userId }],
         },
       ],
       { session }
     );
 
-    /* ================= CREATE REPORT BUG ================= */
+    /* ================= CREATE REPORT ================= */
     await ReportBug.create(
       [
         {
           reportedBy: userId,
           projectId,
           bugId: bug._id,
-
           title: data.title,
           description: data.description,
           priority: data.priority,
@@ -127,9 +123,13 @@ export const createBugAndReportService = async (data, userId) => {
 
     /* ================= UPDATE PROJECT ================= */
     project.bugs.push(bug._id);
-    project.stats.totalBugs += 1;
-    project.stats.openBugs += 1;
+
+    // 🔴 SAVE FIRST
     await project.save({ session });
+
+    // 🔥 FORCE STATUS & PROGRESS
+    await project.updateBugStats();
+    await project.recalculateProgress();
 
     await session.commitTransaction();
     session.endSession();
@@ -141,6 +141,9 @@ export const createBugAndReportService = async (data, userId) => {
     throw error;
   }
 };
+
+
+
 
 
 /* ================= GET ALL BUGS ================= */

@@ -10,8 +10,6 @@ export const createProject = async (data, userId) => {
   return await Project.create({ ...data, createdBy: userId });
 };
 
-
-
 /* ============================
    GET ALL PROJECTS
    Recalculates progress & stats for all projects
@@ -38,7 +36,6 @@ export const getAllProjects = async () => {
       ],
     });
 
-  // 🔥 Recalculate progress and stats for each project dynamically
   for (const project of projects) {
     await project.updateBugStats();
     await project.recalculateProgress();
@@ -46,6 +43,8 @@ export const getAllProjects = async () => {
 
   return projects.map((p) => p.toObject());
 };
+
+
 
 /* ============================
    GET PROJECT BY ID
@@ -74,12 +73,12 @@ export const getProjectById = async (id) => {
 
   if (!project) throw new Error("Project not found");
 
-  // 🔥 Recalculate progress and stats dynamically
   await project.updateBugStats();
   await project.recalculateProgress();
 
   return project.toObject();
 };
+
 
 
 export const updateProject = async (id, data) => {
@@ -101,7 +100,8 @@ export const deleteProject = async (id) => {
 export const addMemberToProject = async (projectId, memberId) => {
   const project = await Project.findById(projectId);
   if (!project) throw new Error("Project not found");
-  if (project.members.includes(memberId)) throw new Error("User is already a member");
+  if (project.members.includes(memberId))
+    throw new Error("User is already a member");
 
   project.members.push(memberId);
   await project.save();
@@ -252,10 +252,19 @@ export const syncProjectStats = async (projectId) => {
 
   const totalBugs = await Bug.countDocuments({ projectId });
   const openBugs = await Bug.countDocuments({ projectId, status: "Open" });
-  const resolvedBugs = await Bug.countDocuments({ projectId, status: "Resolved" });
+  const resolvedBugs = await Bug.countDocuments({
+    projectId,
+    status: "Resolved",
+  });
 
-  const pendingReports = await ReportBug.countDocuments({ projectId, status: "Pending" });
-  const approvedReports = await ReportBug.countDocuments({ projectId, status: "Approved" });
+  const pendingReports = await ReportBug.countDocuments({
+    projectId,
+    status: "Pending",
+  });
+  const approvedReports = await ReportBug.countDocuments({
+    projectId,
+    status: "Approved",
+  });
 
   project.stats = {
     totalBugs,

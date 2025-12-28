@@ -149,8 +149,11 @@ projectSchema.methods.recalculateProgress = async function () {
 
   const totalBugs = await Bug.countDocuments({ projectId: this._id });
 
+  // 🔥 No bugs → Planned
   if (totalBugs === 0) {
     this.progressPercentage = 0;
+    this.status = "Planned";
+    this.actualEndDate = null;
     await this.save();
     return;
   }
@@ -160,19 +163,23 @@ projectSchema.methods.recalculateProgress = async function () {
     status: { $in: ["Resolved", "Closed"] },
   });
 
-  const percentage = Math.round((resolvedBugs / totalBugs) * 100);
+  const openBugs = totalBugs - resolvedBugs;
 
-  this.progressPercentage = percentage;
+  // Progress
+  this.progressPercentage = Math.round((resolvedBugs / totalBugs) * 100);
 
-  if (percentage === 100) {
-    this.status = "Completed";
-    this.actualEndDate = this.actualEndDate || new Date();
-  } else if (this.status === "Completed") {
+  // 🔥 STATUS (FORCED, NOT CONDITIONAL)
+  if (openBugs > 0) {
     this.status = "In Progress";
     this.actualEndDate = null;
+  } else {
+    this.status = "Completed";
+    this.actualEndDate = this.actualEndDate || new Date();
   }
 
   await this.save();
 };
+
+
 
 export default mongoose.model("Project", projectSchema);
