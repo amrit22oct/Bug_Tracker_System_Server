@@ -10,8 +10,14 @@ export const createProject = async (data, userId) => {
   return await Project.create({ ...data, createdBy: userId });
 };
 
+
+
+/* ============================
+   GET ALL PROJECTS
+   Recalculates progress & stats for all projects
+============================ */
 export const getAllProjects = async () => {
-  return await Project.find()
+  const projects = await Project.find()
     .populate("members", "name email role")
     .populate("createdBy", "name email role")
     .populate("manager", "name email role")
@@ -30,26 +36,51 @@ export const getAllProjects = async () => {
         { path: "reportedBy", select: "name email" },
         { path: "reviewedBy", select: "name email" },
       ],
-    })
-    .lean();
+    });
+
+  // 🔥 Recalculate progress and stats for each project dynamically
+  for (const project of projects) {
+    await project.updateBugStats();
+    await project.recalculateProgress();
+  }
+
+  return projects.map((p) => p.toObject());
 };
 
+/* ============================
+   GET PROJECT BY ID
+   Recalculates progress & stats for a single project
+============================ */
 export const getProjectById = async (id) => {
   const project = await Project.findById(id)
     .populate("members", "name email")
     .populate("createdBy", "name email")
     .populate({
       path: "bugs",
-      select: "title status priority severity",
+      select: "title status priority severity assignedTo reportedBy",
+      populate: [
+        { path: "assignedTo", select: "name email" },
+        { path: "reportedBy", select: "name email" },
+      ],
     })
     .populate({
       path: "reports",
-      select: "title status",
+      select: "title status reportedBy reviewedBy",
+      populate: [
+        { path: "reportedBy", select: "name email" },
+        { path: "reviewedBy", select: "name email" },
+      ],
     });
 
   if (!project) throw new Error("Project not found");
-  return project;
+
+  // 🔥 Recalculate progress and stats dynamically
+  await project.updateBugStats();
+  await project.recalculateProgress();
+
+  return project.toObject();
 };
+
 
 export const updateProject = async (id, data) => {
   const project = await Project.findByIdAndUpdate(id, data, {

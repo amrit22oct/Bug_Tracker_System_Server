@@ -70,9 +70,8 @@ const bugSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Bug",
     },
-    
+
     linkedBugs: [{ type: Schema.Types.ObjectId, ref: "Bug" }],
-    
 
     /* ======================
        Environment & Repro
@@ -214,5 +213,29 @@ bugSchema.pre("save", function (next) {
   }
   next();
 });
+
+/* =====================================================
+   🔥 NEW: FORCE PROJECT UPDATE (DO NOT REMOVE)
+===================================================== */
+
+// For save()
+bugSchema.post("save", async function () {
+  await syncProject(this);
+});
+
+// For findByIdAndUpdate / findOneAndUpdate
+bugSchema.post("findOneAndUpdate", async function (doc) {
+  if (!doc) return;
+  await syncProject(doc);
+});
+
+async function syncProject(bug) {
+  const Project = mongoose.model("Project");
+  const project = await Project.findById(bug.projectId);
+  if (!project) return;
+
+  await project.updateBugStats();
+  await project.recalculateProgress();
+}
 
 export default mongoose.model("Bug", bugSchema);

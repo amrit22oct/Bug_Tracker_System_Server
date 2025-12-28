@@ -8,6 +8,7 @@ import {
   updateBug,
   deleteBug,
   assignBug,
+  updateBugStatus,
 } from "../../../controllers/admin/bugs.controller.js";
 import { protect } from "../../../middlewares/authMiddleware.js";
 
@@ -22,6 +23,8 @@ router.get("/get-project-bug/:id", protect, getBugByProjectId);
 router.patch("/assign/:id", protect, assignBug); 
 
 router.put("/:id", protect, updateBug);
+
+router.patch("/:id/status", protect, updateBugStatus);
 router.delete("/:id", protect, deleteBug);
 
 export default router;

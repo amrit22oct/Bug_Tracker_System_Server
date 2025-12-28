@@ -57,10 +57,8 @@ const projectSchema = new Schema(
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Team",
-      
     },
-    
-    
+
     milestones: [
       {
         name: String,
@@ -68,7 +66,9 @@ const projectSchema = new Schema(
         status: { type: String, enum: ["Pending", "Completed"], default: "Pending" },
       },
     ],
+
     progressPercentage: { type: Number, default: 0 },
+
     budget: Number,
     client: String,
     tags: [{ type: String, trim: true, maxlength: 30 }],
@@ -93,6 +93,7 @@ const projectSchema = new Schema(
         createdAt: { type: Date, default: Date.now },
       },
     ],
+
     notifications: [
       {
         message: String,
@@ -105,12 +106,15 @@ const projectSchema = new Schema(
 
 /* ================= METHODS ================= */
 
-// Sync Bug Stats
+// Sync Bug Stats (UNCHANGED)
 projectSchema.methods.updateBugStats = async function () {
   const Bug = mongoose.model("Bug");
   const total = await Bug.countDocuments({ projectId: this._id });
   const open = await Bug.countDocuments({ projectId: this._id, status: "Open" });
-  const resolved = await Bug.countDocuments({ projectId: this._id, status: "Resolved" });
+  const resolved = await Bug.countDocuments({
+    projectId: this._id,
+    status: { $in: ["Resolved", "Closed"] },
+  });
 
   this.stats.totalBugs = total;
   this.stats.openBugs = open;
@@ -118,7 +122,7 @@ projectSchema.methods.updateBugStats = async function () {
   await this.save();
 };
 
-// Sync Report Stats
+// Sync Report Stats (UNCHANGED)
 projectSchema.methods.updateReportStats = async function () {
   const ReportBug = mongoose.model("ReportBug");
   const pending = await ReportBug.countDocuments({ projectId: this._id, status: "Pending" });
@@ -129,11 +133,45 @@ projectSchema.methods.updateReportStats = async function () {
   await this.save();
 };
 
-// Auto-update progress based on milestones
+// Auto-update progress based on milestones (UNCHANGED)
 projectSchema.methods.updateProgress = async function () {
   if (!this.milestones || this.milestones.length === 0) return;
   const completed = this.milestones.filter((m) => m.status === "Completed").length;
   this.progressPercentage = Math.round((completed / this.milestones.length) * 100);
+  await this.save();
+};
+
+/* =====================================================
+   🔥 NEW: FORCE PROGRESS FROM BUGS
+===================================================== */
+projectSchema.methods.recalculateProgress = async function () {
+  const Bug = mongoose.model("Bug");
+
+  const totalBugs = await Bug.countDocuments({ projectId: this._id });
+
+  if (totalBugs === 0) {
+    this.progressPercentage = 0;
+    await this.save();
+    return;
+  }
+
+  const resolvedBugs = await Bug.countDocuments({
+    projectId: this._id,
+    status: { $in: ["Resolved", "Closed"] },
+  });
+
+  const percentage = Math.round((resolvedBugs / totalBugs) * 100);
+
+  this.progressPercentage = percentage;
+
+  if (percentage === 100) {
+    this.status = "Completed";
+    this.actualEndDate = this.actualEndDate || new Date();
+  } else if (this.status === "Completed") {
+    this.status = "In Progress";
+    this.actualEndDate = null;
+  }
+
   await this.save();
 };
 
