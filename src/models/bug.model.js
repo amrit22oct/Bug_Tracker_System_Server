@@ -11,7 +11,7 @@ const bugSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 100,
+      
     },
 
     description: {

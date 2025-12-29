@@ -19,6 +19,7 @@ export const getAllProjects = async () => {
     .populate("members", "name email role")
     .populate("createdBy", "name email role")
     .populate("manager", "name email role")
+    .populate("tester", "name email role")
     .populate({
       path: "bugs",
       select: "title status priority severity assignedTo reportedBy",
@@ -54,6 +55,8 @@ export const getProjectById = async (id) => {
   const project = await Project.findById(id)
     .populate("members", "name email")
     .populate("createdBy", "name email")
+    .populate("manager", "name email role")
+    .populate("tester", "name email role")
     .populate({
       path: "bugs",
       select: "title status priority severity assignedTo reportedBy",
@@ -79,6 +82,148 @@ export const getProjectById = async (id) => {
   return project.toObject();
 };
 
+/* ======================
+Get project by Manger
+=======================*/
+
+
+// export const getProjectByManager = async (managerId) => {
+//   if (!managerId) {
+//     throw new Error("Manager ID is required");
+//   }
+
+//   const projects = await Project.find({
+//     manager: new mongoose.Types.ObjectId(managerId),
+//     archived: false,
+//   })
+//     .populate("members", "name email")
+//     .populate("createdBy", "name email")
+//     .populate("manager", "name email role")
+//     .populate("tester", "name email role") // ✅ removed space
+//     .populate({
+//       path: "bugs",
+//       select: "title status priority severity assignedTo reportedBy",
+//       populate: [
+//         { path: "assignedTo", select: "name email" }, // ✅ fixed typo
+//         { path: "reportedBy", select: "name email" },
+//       ],
+//     })
+//     .populate({
+//       path: "reports",
+//       select: "title status reportedBy reviewedBy",
+//       populate: [
+//         { path: "reportedBy", select: "name email" },
+//         { path: "reviewedBy", select: "name email" },
+//       ],
+//     })
+//     .sort({ createdAt: -1 });
+
+//   await Promise.all(
+//     projects.map(async (p) => {
+//       await p.updateBugStats();
+//       await p.recalculateProgress();
+//     })
+//   );
+
+//   return projects.map((p) => p.toObject());
+// };
+export const getProjectByManager = async (managerId) => {
+  console.log("🔍 ManagerId received:", managerId);
+
+  const projects = await Project.find({
+    manager: managerId,
+    archived: false,
+  })
+    /* ================= BASIC RELATIONS ================= */
+    .populate("members", "name email role")
+    .populate("createdBy", "name email role")
+    .populate("manager", "name email role")
+    .populate("tester", "name email role")
+
+    /* ================= BUGS ================= */
+    .populate({
+      path: "bugs",
+      select: "title status priority severity assignedTo reportedBy",
+      populate: [
+        {
+          path: "assignedTo", // ✅ FIXED TYPO (was assigendTo)
+          select: "name email role",
+        },
+        {
+          path: "reportedBy",
+          select: "name email role",
+        },
+      ],
+    })
+
+    /* ================= REPORTS ================= */
+    .populate({
+      path: "reports",
+      select: "title status reportedBy reviewedBy",
+      populate: [
+        {
+          path: "reportedBy",
+          select: "name email role",
+        },
+        {
+          path: "reviewedBy",
+          select: "name email role",
+        },
+      ],
+    })
+
+    .sort({ createdAt: -1 });
+
+  console.log("📦 Projects found:", projects.length);
+
+  /* ================= FORCE STATS & PROGRESS ================= */
+  await Promise.all(
+    projects.map(async (project) => {
+      await project.updateBugStats();
+      await project.recalculateProgress();
+    })
+  );
+
+  return projects.map((p) => p.toObject());
+};
+
+
+
+
+/* ===========================
+Get project by tester id
+====================*/
+export const getProjectsByTester = async (testerId) => {
+  const projects = await Project.find({ tester: testerId, archived: false })
+    .populate("members", "name email")
+    .populate("createdBy", "name email")
+    .populate("manager", "name email role")
+    .populate("tester", "name email role")
+    .populate({
+      path: "bugs",
+      select: "title status priority severity assignedTo reportedBy",
+      populate: [
+        { path: "assignedTo", select: "name email" },
+        { path: "reportedBy", select: "name email" },
+      ],
+    })
+    .populate({
+      path: "reports",
+      select: "title status reportedBy reviewedBy",
+      populate: [
+        { path: "reportedBy", select: "name email" },
+        { path: "reviewedBy", select: "name email" },
+      ],
+    })
+    .sort({ createdAt: -1 });
+
+  await Promise.all(projects.map(async (p) => {
+    await p.updateBugStats();
+    await p.recalculateProgress();
+  }));
+
+  return projects.map(p => p.toObject());
+};
 
 
 export const updateProject = async (id, data) => {

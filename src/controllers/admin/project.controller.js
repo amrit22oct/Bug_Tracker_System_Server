@@ -42,6 +42,47 @@ export const getProjectById = async (req, res) => {
   }
 };
 
+
+/* ================================
+   GET PROJECTS BY MANAGER
+=============================== */
+export const getProjectsByManager = async (req, res) => {
+  try {
+    const { managerId } = req.params;
+    if (!managerId) {
+      return res.status(400).json({ message: "Manager ID is required" });
+    }
+
+    const projects = await projectService.getProjectByManager(managerId);
+    res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+    console.error("❌ GET PROJECTS BY MANAGER ERROR:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/* ================================
+   GET PROJECTS BY TESTER (QA)
+=============================== */
+export const getProjectsByTester = async (req, res) => {
+  try {
+    const { testerId } = req.params;
+    if (!testerId) {
+      return res.status(400).json({ message: "Tester ID is required" });
+    }
+
+    const projects = await projectService.getProjectsByTester(testerId);
+    res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+    console.error("❌ GET PROJECTS BY TESTER ERROR:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+
+
 export const updateProject = async (req, res) => {
   try {
     const project = await projectService.updateProject(req.params.id, req.body);

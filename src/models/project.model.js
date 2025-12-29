@@ -9,9 +9,9 @@ const projectSchema = new Schema(
       required: [true, "Project name is required"],
       trim: true,
       minlength: 3,
-      maxlength: 100,
+      
     },
-    description: { type: String, trim: true, maxlength: 500 },
+    description: { type: String, trim: true, },
 
     status: {
       type: String,
@@ -41,8 +41,12 @@ const projectSchema = new Schema(
 
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    manager: { type: Schema.Types.ObjectId, ref: "User" },
+    manager: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     teamLeader: { type: Schema.Types.ObjectId, ref: "User" },
+    tester: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },    
 
     startDate: { type: Date, default: Date.now },
     endDate: Date,

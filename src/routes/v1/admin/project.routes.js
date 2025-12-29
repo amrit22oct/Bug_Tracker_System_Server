@@ -3,6 +3,7 @@ import {
   createProject,
   getAllProjects,
   getProjectById,
+  getProjectsByTester,
   updateProject,
   deleteProject,
   addMemberToProject,
@@ -18,6 +19,7 @@ import {
   cloneProject,
   syncProjectBugStats,
   assignTeamsToProject,
+  getProjectsByManager,
 } from "../../../controllers/admin/project.controller.js"; // ✅ singular, matches your file
 
 import {
@@ -44,6 +46,8 @@ router.get("/get-all-projects", protect, getAllProjects);
 
 // Get by ID
 router.get("/get-project/:id", protect, getProjectById);
+router.get("/get-tester-project/:testerId", protect, getProjectsByTester);
+router.get("/get-manager-project/:managerId", protect, getProjectsByManager);
 
 router.post("/:projectId/teams", protect, assignTeamsToProject);
 
