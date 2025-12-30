@@ -7,31 +7,37 @@ import {
   validateBugCreateInput,
   buildBugStatsPipeline,
 } from "../../helpers/bug/bug.helper.js";
+import { updateBugStats, recalculateProgressFromBugs } from "../../helpers/project/project.stats.helper.js";
 import mongoose from "mongoose";
 
 /* ================= CREATE BUG ================= */
+
+
 export const createBugService = async (data, userId) => {
   validateBugCreateInput(data);
 
   const { projectId, title, assignedTo } = data;
 
-  const project = await Project.findById(projectId);
+  /* ================= PROJECT VALIDATION ================= */
+  const project = await Project.findById(projectId).select("archived bugs");
   if (!project) throw new Error("Project not found");
   if (project.archived) throw new Error("Project is archived");
 
+  /* ================= DUPLICATE BUG CHECK ================= */
   const existingBug = await Bug.findOne({
     projectId,
     title: { $regex: `^${title}$`, $options: "i" },
     deletedAt: null,
-  });
+  }).lean();
 
   if (existingBug) {
     throw new Error("Bug with same title already exists in this project");
   }
 
+  /* ================= ASSIGNEE VALIDATION ================= */
   if (assignedTo) {
-    const user = await User.findById(assignedTo);
-    if (!user) throw new Error("Assigned user not found");
+    const userExists = await User.exists({ _id: assignedTo });
+    if (!userExists) throw new Error("Assigned user not found");
   }
 
   /* ================= CREATE BUG ================= */
@@ -42,17 +48,19 @@ export const createBugService = async (data, userId) => {
   });
 
   /* ================= UPDATE PROJECT ================= */
-  project.bugs.push(bug._id);
+  await Project.findByIdAndUpdate(projectId, {
+    $addToSet: { bugs: bug._id }, // prevents duplicates
+  });
 
-  // 🔴 SAVE FIRST (important)
-  await project.save();
-
-  // 🔥 NOW FORCE STATUS & PROGRESS
-  await project.updateBugStats();
-  await project.recalculateProgress();
+  /* ================= UPDATE STATS & PROGRESS ================= */
+  await Promise.all([
+    updateBugStats(projectId),
+    recalculateProgressFromBugs(projectId),
+  ]);
 
   return bug;
 };
+
 
 
 

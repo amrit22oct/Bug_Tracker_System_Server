@@ -2,7 +2,8 @@ import Project from "../../models/project.model.js";
 import Bug from "../../models/bug.model.js";
 import Team from "../../models/team.model.js";
 import ReportBug from "../../models/report.bug.model.js";
-import { calculateCompletionRatio } from "../../helpers/project/project.helper.js";
+// import { calculateCompletionRatio, computeProjectView } from "../../helpers/project/project.helper.js";
+import { computeProjectView } from "../../helpers/project/project.view.helper.js";
 
 /* ------------------------ CRUD OPERATIONS ------------------------ */
 
@@ -14,36 +15,24 @@ export const createProject = async (data, userId) => {
    GET ALL PROJECTS
    Recalculates progress & stats for all projects
 ============================ */
+
+
+
+
 export const getAllProjects = async () => {
-  const projects = await Project.find()
+  const projects = await Project.find({})
     .populate("members", "name email role")
     .populate("createdBy", "name email role")
     .populate("manager", "name email role")
     .populate("tester", "name email role")
-    .populate({
-      path: "bugs",
-      select: "title status priority severity assignedTo reportedBy",
-      populate: [
-        { path: "assignedTo", select: "name email" },
-        { path: "reportedBy", select: "name email" },
-      ],
-    })
-    .populate({
-      path: "reports",
-      select: "title status reportedBy reviewedBy",
-      populate: [
-        { path: "reportedBy", select: "name email" },
-        { path: "reviewedBy", select: "name email" },
-      ],
-    });
+    .populate({ path: "bugs", select: "status" })
+    .populate({ path: "reports", select: "status" })
+    .lean();
 
-  for (const project of projects) {
-    await project.updateBugStats();
-    await project.recalculateProgress();
-  }
-
-  return projects.map((p) => p.toObject());
+  return projects.map(computeProjectView);
 };
+
+
 
 
 
@@ -51,6 +40,39 @@ export const getAllProjects = async () => {
    GET PROJECT BY ID
    Recalculates progress & stats for a single project
 ============================ */
+// export const getProjectById = async (id) => {
+//   const project = await Project.findById(id)
+//     .populate("members", "name email")
+//     .populate("createdBy", "name email")
+//     .populate("manager", "name email role")
+//     .populate("tester", "name email role")
+//     .populate({
+//       path: "bugs",
+//       select: "title status priority severity assignedTo reportedBy",
+//       populate: [
+//         { path: "assignedTo", select: "name email" },
+//         { path: "reportedBy", select: "name email" },
+//       ],
+//     })
+//     .populate({
+//       path: "reports",
+//       select: "title status reportedBy reviewedBy",
+//       populate: [
+//         { path: "reportedBy", select: "name email" },
+//         { path: "reviewedBy", select: "name email" },
+//       ],
+//     });
+
+//   if (!project) throw new Error("Project not found");
+
+//   await project.updateBugStats();
+//   await project.recalculateProgress();
+
+//   return project.toObject();
+// };
+
+
+
 export const getProjectById = async (id) => {
   const project = await Project.findById(id)
     .populate("members", "name email")
@@ -72,15 +94,14 @@ export const getProjectById = async (id) => {
         { path: "reportedBy", select: "name email" },
         { path: "reviewedBy", select: "name email" },
       ],
-    });
+    })
+    .lean(); // 🚀 important
 
   if (!project) throw new Error("Project not found");
 
-  await project.updateBugStats();
-  await project.recalculateProgress();
-
-  return project.toObject();
+  return computeProjectView(project);
 };
+
 
 /* ======================
 Get project by Manger
@@ -127,64 +148,97 @@ Get project by Manger
 
 //   return projects.map((p) => p.toObject());
 // };
-export const getProjectByManager = async (managerId) => {
-  console.log("🔍 ManagerId received:", managerId);
+// export const getProjectByManager = async (managerId) => {
+//   console.log("🔍 ManagerId received:", managerId);
 
+//   const projects = await Project.find({
+//     manager: managerId,
+//     archived: false,
+//   })
+//     /* ================= BASIC RELATIONS ================= */
+//     .populate("members", "name email role")
+//     .populate("createdBy", "name email role")
+//     .populate("manager", "name email role")
+//     .populate("tester", "name email role")
+
+//     /* ================= BUGS ================= */
+//     .populate({
+//       path: "bugs",
+//       select: "title status priority severity assignedTo reportedBy",
+//       populate: [
+//         {
+//           path: "assignedTo", // ✅ FIXED TYPO (was assigendTo)
+//           select: "name email role",
+//         },
+//         {
+//           path: "reportedBy",
+//           select: "name email role",
+//         },
+//       ],
+//     })
+
+//     /* ================= REPORTS ================= */
+//     .populate({
+//       path: "reports",
+//       select: "title status reportedBy reviewedBy",
+//       populate: [
+//         {
+//           path: "reportedBy",
+//           select: "name email role",
+//         },
+//         {
+//           path: "reviewedBy",
+//           select: "name email role",
+//         },
+//       ],
+//     })
+
+//     .sort({ createdAt: -1 });
+
+//   console.log("📦 Projects found:", projects.length);
+
+//   /* ================= FORCE STATS & PROGRESS ================= */
+//   await Promise.all(
+//     projects.map(async (project) => {
+//       await project.updateBugStats();
+//       await project.recalculateProgress();
+//     })
+//   );
+
+//   return projects.map((p) => p.toObject());
+// };
+
+
+
+export const getProjectByManager = async (managerId) => {
   const projects = await Project.find({
     manager: managerId,
     archived: false,
   })
-    /* ================= BASIC RELATIONS ================= */
     .populate("members", "name email role")
     .populate("createdBy", "name email role")
     .populate("manager", "name email role")
     .populate("tester", "name email role")
-
-    /* ================= BUGS ================= */
     .populate({
       path: "bugs",
       select: "title status priority severity assignedTo reportedBy",
       populate: [
-        {
-          path: "assignedTo", // ✅ FIXED TYPO (was assigendTo)
-          select: "name email role",
-        },
-        {
-          path: "reportedBy",
-          select: "name email role",
-        },
+        { path: "assignedTo", select: "name email role" },
+        { path: "reportedBy", select: "name email role" },
       ],
     })
-
-    /* ================= REPORTS ================= */
     .populate({
       path: "reports",
       select: "title status reportedBy reviewedBy",
       populate: [
-        {
-          path: "reportedBy",
-          select: "name email role",
-        },
-        {
-          path: "reviewedBy",
-          select: "name email role",
-        },
+        { path: "reportedBy", select: "name email role" },
+        { path: "reviewedBy", select: "name email role" },
       ],
     })
+    .sort({ createdAt: -1 })
+    .lean(); // 🚀 critical
 
-    .sort({ createdAt: -1 });
-
-  console.log("📦 Projects found:", projects.length);
-
-  /* ================= FORCE STATS & PROGRESS ================= */
-  await Promise.all(
-    projects.map(async (project) => {
-      await project.updateBugStats();
-      await project.recalculateProgress();
-    })
-  );
-
-  return projects.map((p) => p.toObject());
+  return projects.map(computeProjectView);
 };
 
 
@@ -193,8 +247,45 @@ export const getProjectByManager = async (managerId) => {
 /* ===========================
 Get project by tester id
 ====================*/
+// export const getProjectsByTester = async (testerId) => {
+//   const projects = await Project.find({ tester: testerId, archived: false })
+//     .populate("members", "name email")
+//     .populate("createdBy", "name email")
+//     .populate("manager", "name email role")
+//     .populate("tester", "name email role")
+//     .populate({
+//       path: "bugs",
+//       select: "title status priority severity assignedTo reportedBy",
+//       populate: [
+//         { path: "assignedTo", select: "name email" },
+//         { path: "reportedBy", select: "name email" },
+//       ],
+//     })
+//     .populate({
+//       path: "reports",
+//       select: "title status reportedBy reviewedBy",
+//       populate: [
+//         { path: "reportedBy", select: "name email" },
+//         { path: "reviewedBy", select: "name email" },
+//       ],
+//     })
+//     .sort({ createdAt: -1 });
+
+//   await Promise.all(projects.map(async (p) => {
+//     await p.updateBugStats();
+//     await p.recalculateProgress();
+//   }));
+
+//   return projects.map(p => p.toObject());
+// };
+
+
+
 export const getProjectsByTester = async (testerId) => {
-  const projects = await Project.find({ tester: testerId, archived: false })
+  const projects = await Project.find({
+    tester: testerId,
+    archived: false,
+  })
     .populate("members", "name email")
     .populate("createdBy", "name email")
     .populate("manager", "name email role")
@@ -215,15 +306,12 @@ export const getProjectsByTester = async (testerId) => {
         { path: "reviewedBy", select: "name email" },
       ],
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean(); // 🚀 critical
 
-  await Promise.all(projects.map(async (p) => {
-    await p.updateBugStats();
-    await p.recalculateProgress();
-  }));
-
-  return projects.map(p => p.toObject());
+  return projects.map(computeProjectView);
 };
+
 
 
 export const updateProject = async (id, data) => {
