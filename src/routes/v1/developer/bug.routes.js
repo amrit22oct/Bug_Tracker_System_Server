@@ -1,19 +1,11 @@
 import express from "express";
-import {
-  createBug,
-  getAllBugs,
-  getBugById,
-  updateBug,
-  deleteBug,
-} from "../../../controllers/developer/bug.controller.js";
 import { protect } from "../../../middlewares/authMiddleware.js";
+import { getDeveloperBugs } from "../../../controllers/developer/bugs.controller.js";
+
 
 const router = express.Router();
 
-router.post("/", protect, createBug);
-router.get("/", protect, getAllBugs);
-router.get("/:id", protect, getBugById);
-router.put("/:id", protect, updateBug);
-router.delete("/:id", protect, deleteBug);
+// GET bugs assigned to a developer
+router.get("/get-developer-bug/:developerId", protect, getDeveloperBugs);
 
 export default router;

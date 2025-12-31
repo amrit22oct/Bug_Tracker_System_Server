@@ -12,6 +12,7 @@ import {
   createSubBugService,
   addBugHistoryService,
   getBugStatsService,
+  getBugsByProjectManagerService,
 } from "../../services/admin/bug.service.js";
 
 /* ================= CREATE BUG ================= */
@@ -78,6 +79,33 @@ export const getBugByProjectId = async (req, res) => {
     res.status(500).json({ success: false, message: e.message });
   }
 };
+
+/* ===================== Get bug by Project manager id ==============*/
+
+
+export const getBugsByProjectManager = async (req, res) => {
+  try {
+    const { projectManagerId } = req.params;
+    const { limit, skip } = req.query;
+
+    const bugs = await getBugsByProjectManagerService(projectManagerId, {
+      limit: parseInt(limit) || 50,
+      skip: parseInt(skip) || 0,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "🐞 Bugs fetched for project manager successfully",
+      data: bugs,
+    });
+  } catch (e) {
+    res.status(400).json({
+      success: false,
+      message: e.message,
+    });
+  }
+};
+
 
 /* ================= UPDATE BUG ================= */
 export const updateBug = async (req, res) => {

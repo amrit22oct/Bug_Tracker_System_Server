@@ -183,6 +183,40 @@ export const getBugByProjectIdService = async (projectId) => {
   return project.bugs; // now returns full bug details
 };
 
+/* ==============get bug by projct manager ===============*/
+
+export const getBugsByProjectManagerService = async (
+  projectManagerId,
+  options = {}
+) => {
+  const { limit = 50, skip = 0, sort = { createdAt: -1 } } = options;
+
+  // 1️⃣ Find projects managed by this project manager
+  const projects = await Project.find({
+    manager: projectManagerId,
+    deletedAt: null,
+  }).select("_id");
+
+  if (!projects.length) return [];
+
+  const projectIds = projects.map((p) => p._id);
+
+  // 2️⃣ Find bugs for those projects
+  return Bug.find({
+    projectId: { $in: projectIds },
+    deletedAt: null,
+  })
+    .populate({
+      path: "reportedBy assignedTo watchers comments.user reviewedBy",
+      select: "_id name email role avatar",
+    })
+    .populate("projectId") // full project data
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
+};
+
+
 /* ================= UPDATE BUG ================= */
 export const updateBugService = async (id, updates) => {
   const bug = await Bug.findByIdAndUpdate(id, updates, {

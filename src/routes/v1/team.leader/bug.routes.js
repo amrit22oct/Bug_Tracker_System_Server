@@ -1,23 +1,14 @@
 import express from "express";
-import {
-  createBug,
-  getAllBugs,
-  getBugById,
-  updateBug,
-  deleteBug,
-  assignBug, // ✅ import assignBug controller
-} from "../../../controllers/developer/bug.controller.js";
+import { getBugsByTeam, getBugsByTeamLeader } from "../../../controllers/team.leader/bug.controller.js";
 import { protect } from "../../../middlewares/authMiddleware.js";
+
 
 const router = express.Router();
 
-router.post("/", protect, createBug);
-router.get("/", protect, getAllBugs);
-router.get("/:id", protect, getBugById);
-router.put("/:id", protect, updateBug);
-router.delete("/:id", protect, deleteBug);
+// GET bugs by team
+router.get("/team/:teamId",protect, getBugsByTeam);
 
-// ------------------ ASSIGN BUG ------------------
-router.patch("/assign/:id", protect, assignBug); 
+// GET bugs by team leader
+router.get("/get-team-leader-bug/:teamLeaderId", protect, getBugsByTeamLeader);
 
 export default router;

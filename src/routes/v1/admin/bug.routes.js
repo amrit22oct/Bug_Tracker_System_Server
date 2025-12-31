@@ -9,6 +9,7 @@ import {
   deleteBug,
   assignBug,
   updateBugStatus,
+  getBugsByProjectManager,
 } from "../../../controllers/admin/bugs.controller.js";
 import { protect } from "../../../middlewares/authMiddleware.js";
 
@@ -19,6 +20,12 @@ router.post("/create-bug-report", protect, createBugAndReport);
 router.get("/get-all-bugs", protect, getAllBugs);
 router.get("/get-bug/:id", protect, getBugById);
 router.get("/get-project-bug/:id", protect, getBugByProjectId);
+
+// GET bugs by project manager
+router.get(
+  "/get-bug-project-manager/:projectManagerId",protect,
+  getBugsByProjectManager
+);
 
 router.patch("/assign/:id", protect, assignBug); 
 
