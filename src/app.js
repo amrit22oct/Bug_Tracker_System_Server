@@ -6,12 +6,14 @@ import logger from "./utils/logger.js";
 
 const app = express();
 
+// Full Request/Response Logger
+app.use(requestLogger);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Full Request/Response Logger
-app.use(requestLogger);
+
 
 // Base Route
 app.get("/", (req, res) => {
