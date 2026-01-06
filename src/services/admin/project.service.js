@@ -101,7 +101,56 @@ export const getAllProjects = async () => {
 
 //   return computeProjectView(project);
 // };
+// export const getProjectById = async (id) => {
+//   const project = await Project.findById(id)
+//     .populate("members", "name email")
+//     .populate("createdBy", "name email")
+//     .populate("manager", "name email role")
+//     .populate("tester", "name email role")
+//     .populate({
+//       path: "bugs",
+//       select: "title status priority severity assignedTo reportedBy",
+//       populate: [
+//         { path: "assignedTo", select: "name email" },
+//         { path: "reportedBy", select: "name email" },
+//       ],
+//     })
+//     .populate({
+//       path: "reports",
+//       select: "title status reportedBy reviewedBy",
+//       populate: [
+//         { path: "reportedBy", select: "name email" },
+//         { path: "reviewedBy", select: "name email" },
+//       ],
+//     })
+//     .lean(); // important for subdocument access
+
+//   if (!project) throw new Error("Project not found");
+
+//   // ✅ Files are already embedded as subdocuments
+//   // Optionally map or format them if needed
+//   const filesWithFullPath = (project.files || []).map((file) => ({
+//     name: file.name,
+//     fileType: file.fileType,
+//     fileUrl: file.fileUrl, // this is already the full URL if saved correctly
+//     uploadedAt: file.uploadedAt,
+//   }));
+
+//   return {
+//     ...project,
+//     files: filesWithFullPath,
+//   };
+// };
+
+
+
+import mongoose from "mongoose";
+
 export const getProjectById = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid project ID");
+  }
+
   const project = await Project.findById(id)
     .populate("members", "name email")
     .populate("createdBy", "name email")
@@ -123,17 +172,16 @@ export const getProjectById = async (id) => {
         { path: "reviewedBy", select: "name email" },
       ],
     })
-    .lean(); // important for subdocument access
+    .lean();
 
   if (!project) throw new Error("Project not found");
 
-  // ✅ Files are already embedded as subdocuments
-  // Optionally map or format them if needed
   const filesWithFullPath = (project.files || []).map((file) => ({
     name: file.name,
     fileType: file.fileType,
-    fileUrl: file.fileUrl, // this is already the full URL if saved correctly
+    fileUrl: file.fileUrl,
     uploadedAt: file.uploadedAt,
+    previewable: file.fileType === "image" || file.fileType === "pdf",
   }));
 
   return {
@@ -141,6 +189,7 @@ export const getProjectById = async (id) => {
     files: filesWithFullPath,
   };
 };
+
 
 
 /* ======================
