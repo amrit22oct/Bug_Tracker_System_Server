@@ -106,11 +106,11 @@ export const uploadDocumentService = async (file) => {
   // Determine Cloudinary resource type
   let resourceType = "raw"; // default
   if (file.mimetype.startsWith("image/")) {
-    resourceType = "image";
+    resourceType = "image";        // images stay as images
   } else if (file.mimetype === "application/pdf") {
-    resourceType = "image"; // Cloudinary can generate first-page preview
+    resourceType = "raw";          // PDFs must be raw to be downloadable/viewable
   } else {
-    resourceType = "raw"; // Word, Excel, ZIP, etc.
+    resourceType = "raw";          // Word, Excel, ZIP, etc.
   }
 
   return new Promise((resolve, reject) => {
@@ -124,9 +124,9 @@ export const uploadDocumentService = async (file) => {
 
         // Map to frontend-compatible shape
         resolve({
-          filename: file.originalname,      // used to match old 'filename'
-          originalName: file.originalname,  // old frontend expected this
-          path: result.secure_url,          // old 'path' now contains full URL
+          filename: file.originalname,
+          originalName: file.originalname,
+          path: result.secure_url, // full URL, works directly in browser
           size: file.size,
           mimeType: file.mimetype,
         });
@@ -134,3 +134,4 @@ export const uploadDocumentService = async (file) => {
     ).end(file.buffer);
   });
 };
+
