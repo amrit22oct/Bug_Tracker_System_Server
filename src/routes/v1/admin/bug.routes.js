@@ -10,12 +10,19 @@ import {
   assignBug,
   updateBugStatus,
   getBugsByProjectManager,
+  createSubBug,
 } from "../../../controllers/admin/bugs.controller.js";
 import { protect } from "../../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/create-bug", protect, createBug);
+router.post(
+  "/create-sub-bugs/:parentBugId",
+  protect,
+  createSubBug
+);
+
 router.post("/create-bug-report", protect, createBugAndReport);
 router.get("/get-all-bugs", protect, getAllBugs);
 router.get("/get-bug/:id", protect, getBugById);

@@ -174,18 +174,34 @@ export const linkRelatedBugs = async (req, res) => {
 /* ================= CREATE SUB BUG ================= */
 export const createSubBug = async (req, res) => {
   try {
-    const bug = await createSubBugService(
-      req.params.id,
+    const { parentBugId } = req.params;
+
+    if (!parentBugId) {
+      return res.status(400).json({
+        success: false,
+        message: "Parent bug ID is required",
+      });
+    }
+
+    const subBug = await createSubBugService(
+      parentBugId,
       req.body,
-      req.user?._id
+      req.user._id
     );
-    res
-      .status(201)
-      .json({ success: true, message: "🧩 Sub-bug created", data: bug });
-  } catch (e) {
-    res.status(400).json({ success: false, message: e.message });
+
+    res.status(201).json({
+      success: true,
+      message: "🧩 Sub-bug created successfully",
+      data: subBug,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
+
 
 /* ================= ADD BUG HISTORY ================= */
 export const addBugHistory = async (req, res) => {

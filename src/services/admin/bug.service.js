@@ -162,15 +162,97 @@ export const getAllBugsService = async () =>
     .populate("projectId", "name");
 
 /* ================= GET BUG BY ID ================= */
-export const getBugByIdService = async (id) => {
-  const bug = await Bug.findById(id)
-    .populate("reportedBy", "name email")
-    .populate("assignedTo", "name email")
-    .populate("projectId", "name");
+// export const getBugByIdService = async (id) => {
+//   const bug = await Bug.findById(id)
+//     .populate("reportedBy", "name email")
+//     .populate("assignedTo", "name email")
+//     .populate("projectId", "name");
 
-  if (!bug || bug.deletedAt) throw new Error("Bug not found");
+//   if (!bug || bug.deletedAt) throw new Error("Bug not found");
+//   return bug;
+// };
+
+export const getBugByIdService = async (bugId) => {
+  const bug = await Bug.findOne({
+    _id: bugId,
+    deletedAt: { $exists: false },
+  })
+    // ===== Core relations =====
+    .populate("reportedBy", "name email avatar")
+    .populate("assignedTo", "name email avatar")
+    .populate("reviewedBy", "name email")
+
+    // ===== Project =====
+    .populate("projectId", "name key status")
+
+    // ===== Watchers =====
+    .populate("watchers", "name email")
+
+    // ===== Parent bug =====
+    .populate({
+      path: "parentBug",
+      select: "title status priority severity projectId reportedBy",
+      populate: [
+        { path: "projectId", select: "name key" },
+        { path: "reportedBy", select: "name email" },
+      ],
+    })
+
+    // ===== Sub-bugs (FULL DETAILS) =====
+    .populate({
+      path: "linkedBugs",
+      match: { deletedAt: { $exists: false } },
+      populate: [
+        {
+          path: "projectId",
+          select: "name key status",
+        },
+        {
+          path: "reportedBy",
+          select: "name email avatar",
+        },
+        {
+          path: "assignedTo",
+          select: "name email avatar",
+        },
+        {
+          path: "watchers",
+          select: "name email",
+        },
+        {
+          path: "parentBug",
+          select: "title status",
+        },
+      ],
+    })
+
+    // ===== Comments =====
+    .populate({
+      path: "comments.user",
+      select: "name email avatar",
+    })
+
+    // ===== Status history =====
+    .populate({
+      path: "statusHistory.changedBy",
+      select: "name email",
+    })
+
+    // ===== Change history =====
+    .populate({
+      path: "history.changedBy",
+      select: "name email",
+    });
+
+  if (!bug) {
+    throw new Error("Bug not found");
+  }
+
   return bug;
 };
+
+
+
 
 /* ===================== GET BUG BY PROJECT ID ===============*/
 
@@ -309,22 +391,38 @@ export const linkRelatedBugsService = async (id, relatedBugId) => {
 };
 
 /* ================= CREATE SUB BUG ================= */
-export const createSubBugService = async (parentId, data, userId) => {
-  const parent = await Bug.findById(parentId);
-  if (!parent || parent.deletedAt) throw new Error("Parent bug not found");
+export const createSubBugService = async (
+  parentBugId,
+  data,
+  userId
+) => {
+  const parentBug = await Bug.findOne({
+    _id: parentBugId,
+    deletedAt: { $exists: false },
+  });
 
-  const childBug = await Bug.create({
+  if (!parentBug) {
+    throw new Error("Parent bug not found or deleted");
+  }
+
+  if (!data.title || !data.title.trim()) {
+    throw new Error("Sub-bug title is required");
+  }
+
+  const subBug = await Bug.create({
     ...data,
-    projectId: parent.projectId,
-    parentBug: parent._id,
+    projectId: parentBug.projectId,
+    parentBug: parentBug._id,
     reportedBy: userId,
   });
 
-  parent.linkedBugs.push(childBug._id);
-  await parent.save();
+  await Bug.findByIdAndUpdate(parentBug._id, {
+    $addToSet: { linkedBugs: subBug._id },
+  });
 
-  return childBug;
+  return subBug;
 };
+
 
 /* ================= ADD BUG HISTORY ================= */
 export const addBugHistoryService = async (id, log) => {
